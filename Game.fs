@@ -57,7 +57,7 @@ type Player(name: string) =
 
     member p.Name = name
     member p.Hand
-      with get() = hand |> Seq.take 6 |> Seq.toList
+      with get() = hand |> Seq.truncate 6 |> Seq.toList
       and  set li = hand <- List.toArray li
     member p.InGame
       with get () = inGame
@@ -84,3 +84,6 @@ type Player(name: string) =
 
     member p.Kill i =
         inGame.[i] <- Card.Empty
+
+    member p.HasKilled c =
+        score <- score + if c = Card.King then 2 else 1

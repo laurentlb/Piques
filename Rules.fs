@@ -28,9 +28,9 @@ let processMessage (mb: MBP) = async {
         | Messages.DoAction (owner, sel) ->
             match Messages.Action.Analyse owner sel with
             | Messages.Choose li ->
-                for i in li do (fst players.[owner]).PlayCard(i)
+                for i in List.sort li |> List.rev do (fst players.[owner]).PlayCard(i)
                 updateGame owner
-            | _ -> failwith "blah"
+            | _ -> ()
 }
 
 let rec getAction (mb: MBP) from = async {
@@ -50,7 +50,7 @@ let rec chooseCards mb = async {
     if not mustPlay.IsEmpty then
         for p, c in mustPlay do
             let n = p.MustChoose
-            c.Post(Messages.Comment(sprintf "Choisis %d cartes de ta main." n))
+            c.Post(Messages.Comment(sprintf "Choisis %d carte(s) de ta main." n))
         for p, c in hasPlayed do
             let people = mustPlay |> List.map (fun (p, _) -> p.Name) |> String.concat " et "
             c.Post(Messages.Comment("En attente de " + people))
@@ -67,10 +67,15 @@ let rec playTurn mb i = async {
             let p1, p2 = fst players.[i], fst players.[ennemy]
             let u1, u2 = p1.InGame.[myUnit], p2.InGame.[hisUnit]
             let l1, l2 = getLetter i myUnit, getLetter ennemy hisUnit
-            comment (sprintf "%c[%s] attaque %c[%s]" l1 (u1.ToString()) l2 (u2.ToString()))
             let alive1, alive2 = u1.Fight(u2)
-            if not alive1 then p1.Kill(myUnit)
-            if not alive2 then p2.Kill(hisUnit)
+            let com = ref (sprintf "%c attaque %c." l1 l2)
+            if not alive1 then
+                p1.Kill(myUnit); p2.HasKilled(u1)
+                com := sprintf "%s %c[%s] est mort." !com l1 (u1.ToString())
+            if not alive2 then
+                p2.Kill(hisUnit); p1.HasKilled(u2)
+                com := sprintf "%s %c[%s] est mort." !com l2 (u2.ToString())
+            comment !com
             updateWorld()
       | _ -> ()
     

@@ -27,3 +27,10 @@ let rec establishServer f port =
         let client = server.AcceptTcpClient()
         printfn "New client"
         f (client.GetStream()) |> Async.StartImmediate
+
+// todo: spy
+// todo: 2 vs 1
+// todo: 1 vs 2
+// faire exploser la double mine :)
+// score
+// nombre de cartes dans la pioche
