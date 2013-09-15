@@ -21,7 +21,7 @@ let updateDisplay () =
     // button.BackColor <- Color.Red;
     form.Controls.Add(button)
 
-    let button = new Button(Text = "Tir-au-flanc", Left = 200, Top = 50)
+    let button = new Button(Text = "Tire-au-flanc", Left = 200, Top = 50)
     button.MouseClick.Add(fun _ -> System.Windows.Forms.MessageBox.Show("test") |> ignore)
     form.Controls.Add(button)
 
