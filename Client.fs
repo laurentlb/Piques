@@ -1,5 +1,6 @@
 ﻿module Client
 
+open Control.CommonExtensions
 open System
 open System.Drawing
 open System.Net.Sockets
@@ -16,16 +17,40 @@ let textBox = new TextBox(Height = 400, Width = 700, Top = 350, Multiline = true
 
 let mutable players : Player list = []
 let mutable myId = -1
+let selectedButtons = new HashSet<int * int>()
 
-let selected = new HashSet<int * int>()
+let tcp = new TcpClient()
+tcp.Connect("localhost", 3000)
+
+let mailbox = new MailboxProcessor<Messages.ForServer>(fun inbox ->
+    async {
+        while true do
+            let! msg = inbox.Receive()
+            do! tcp.GetStream().AsyncWriteString(msg.ToString())
+    })
+mailbox.Start()
 
 let select (bt: Button) key =
-    if selected.Contains(key) then
+    if selectedButtons.Contains(key) then
         bt.Font <- new Font(bt.Font, FontStyle.Regular)
-        selected.Remove(key) |> ignore
+        selectedButtons.Remove(key) |> ignore
     else
         bt.Font <- new Font(bt.Font, FontStyle.Bold)
-        selected.Add(key) |> ignore
+        selectedButtons.Add(key) |> ignore
+
+let sendOrder _ =
+    let sel = Seq.toList selectedButtons
+    let fromHand, fromGame = List.partition (function -1, _ -> true | _, _ -> false) sel
+    let mine, ennemy = List.partition (fun (pid, cid) -> pid = myId) fromGame
+    match fromHand.Length, mine.Length, ennemy.Length with
+      | 0, 0, 0 -> failwith "Sélectionne des cartes"
+      | x, 0, 0 -> () // choose
+      | 1, 1, 0 -> () // swap
+      | 0, 1, 1 -> () // attaque simple
+      | 0, 2, 1 -> () // travail d'équipe
+      | 0, 1, 2 -> () // attaque double
+      | _ -> MessageBox.Show("Je ne comprends pas") |> ignore
+    mailbox.Post(Messages.Action(myId, sel))
 
 let updateDisplay () =
     form.Controls.Clear()
@@ -33,9 +58,9 @@ let updateDisplay () =
     let mutable top = 50
 
     if myId >= 0 then
-        // Action buttons
-        form.Controls.Add(new Label(Text = "Actions", Top = top))
+        // Action button
         let button = new Button(Text = "Action", Left = 100, Top = top)
+        button.MouseClick.Add(sendOrder)
         form.Controls.Add(button)
         top <- top + 50
 
@@ -52,7 +77,7 @@ let updateDisplay () =
     // Player buttons
     for pid in 0 .. players.Length - 1 do
         let p = players.[pid]
-        form.Controls.Add(new Label(Text = p.Name, Top = top))
+        form.Controls.Add(new Label(Text = p.Name + "*", Top = top))
 
         for i in 0 .. p.InGame.Length - 1 do
             let text = if pid = myId || p.InGame.[i] = Card.Empty then p.InGame.[i].ToString() else "??"
@@ -79,9 +104,7 @@ let processMessage = function
     | x -> topText.Text <- "?? " + x.ToString() 
 
 let rec doNetwork = async {
-    let tcp = new TcpClient()
-    tcp.Connect("localhost", 3000)
-    let text = "LLB"
+    let text = "?"
     do! tcp.GetStream().AsyncWriteString(text)
     while true do
         let! msg = tcp.GetStream().AsyncReadString

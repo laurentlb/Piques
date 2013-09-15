@@ -42,7 +42,20 @@ with
 
 type ForServer =
   | Register of string * MailboxProcessor<ForClient>
+  | Action of int * (int * int) list
 with
-  override m.ToString() = failwith "not implemented"
+  override m.ToString() =
+    match m with
+    | Action (owner, li) ->
+        let li = [for x, y in li -> string x + "," + string y]
+        sprintf "Action|%d|%s\n" owner (String.concat "|" li)
+    | Register _ -> failwith "not implemented"
   
-  static member Parse (s: string) = failwith "not implemented"
+  static member Parse (s: string) =
+      let data = s.Split([|'|'|])
+      let args = Array.toList data.[1..]
+      match data.[0] with
+      | "Action" ->
+        let tuples = [for sub in data.[2..] -> let sub = sub.Split([|','|]) |> Array.map int in sub.[0], sub.[1]]
+        Action(int data.[1], tuples)
+      | _ -> failwithf "Invalid network message: %s" s

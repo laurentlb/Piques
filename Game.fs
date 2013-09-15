@@ -66,3 +66,9 @@ type Player(name: string) =
 
     member p.Dead =
         inGame = [|Card.Empty; Card.Empty|] && hand.Length = 0
+
+    member p.MustChoose =
+        if Array.forall ((<>) Card.Empty) inGame then
+            false
+        else
+            hand.Length > 0

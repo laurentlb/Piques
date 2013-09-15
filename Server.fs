@@ -2,26 +2,11 @@
 
 open Control.CommonExtensions
 open Microsoft.FSharp.Control
+open System
 open System.Net
 open System.Net.Sockets
 
 open Network
-
-//let gameMaster = Rules.waitForPlayers
-
-//let gameMaster (inbox: MailboxProcessor<Messages.ForServer>) = async {
-//    while true do
-//        let! msg = inbox.Receive()
-//        match msg with
-//          | Messages.Register (name, mb) ->
-//                printfn "[gm] -> %s" name
-//                let p = new Game.Player(name)
-//                let idClient = players.Length
-//                players <- players @ [p] // TODO: mailbox
-//                let msg = Messages.InitGame(idClient, [for p in players -> p.Name])
-//                mb.Post(msg)
-//          | _ -> printfn "[gm] ?! %s" (msg.ToString())
-//}
 
 let master = new MailboxProcessor<Messages.ForServer>(Rules.waitForPlayers)
 master.Start()
@@ -34,12 +19,24 @@ let clientMailbox (stream: NetworkStream) (inbox: MailboxProcessor<Messages.ForC
         do! stream.AsyncWriteString(msg.ToString())
 }
 
+let mutable names =
+    ["Albrecht"; "Reimund"; "Reiner"; "Wilfried"; "Wolfram"; "Ludolf"; "Ludwig"; "Lothar"; "Heinrich"; "Dieter"; "Friedrich"; "Fritz"]
+let random = new Random()
+
+let checkName s =
+    if s <> "?" then s
+    else
+        let name = names.[random.Next(names.Length)]
+        names <- List.filter ((<>) name) names
+        name
+
 let clientLoop (stream: NetworkStream) = async {
     try
-        let! clientName = stream.AsyncReadString
+        let! name = stream.AsyncReadString
+        let name = checkName name
         let mb = new MailboxProcessor<Messages.ForClient>(clientMailbox stream)
         mb.Start()
-        master.Post(Messages.ForServer.Register(clientName, mb))
+        master.Post(Messages.ForServer.Register(name, mb))
         while true do
             let! msg = stream.AsyncReadString
             master.Post(Messages.ForServer.Parse(msg))
