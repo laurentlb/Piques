@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Piques", "Piques.fsproj", "{682FFBDC-313C-4619-92F8-1E4998D0C558}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "PiquesServer", "PiquesServer.fsproj", "{7414C1A9-60C9-4DEF-B6A2-F120116DFE0C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -13,6 +15,10 @@ Global
 		{682FFBDC-313C-4619-92F8-1E4998D0C558}.Debug|x86.Build.0 = Debug|x86
 		{682FFBDC-313C-4619-92F8-1E4998D0C558}.Release|x86.ActiveCfg = Release|x86
 		{682FFBDC-313C-4619-92F8-1E4998D0C558}.Release|x86.Build.0 = Release|x86
+		{7414C1A9-60C9-4DEF-B6A2-F120116DFE0C}.Debug|x86.ActiveCfg = Debug|x86
+		{7414C1A9-60C9-4DEF-B6A2-F120116DFE0C}.Debug|x86.Build.0 = Debug|x86
+		{7414C1A9-60C9-4DEF-B6A2-F120116DFE0C}.Release|x86.ActiveCfg = Release|x86
+		{7414C1A9-60C9-4DEF-B6A2-F120116DFE0C}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

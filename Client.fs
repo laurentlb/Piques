@@ -1,4 +1,6 @@
-﻿open System.Windows.Forms
+﻿module Client
+
+open System.Windows.Forms
 open System.Drawing
 
 let form = new Form(Text = "Batailles et piques", Width = 700, Height = 400)
@@ -46,5 +48,18 @@ let updateText message =
 
 updateDisplay()
 updateText "Toujours pas connecté"
+
+open System.Net
+open System.Net.Sockets
+open System.Text
+
+let tcp = new TcpClient()
+tcp.Connect("localhost", 3000)
+let text = "LLB"
+tcp.GetStream().Write(Encoding.ASCII.GetBytes(text), 0, text.Length)
+
+let bytes = Array.create 256 0uy
+let n = tcp.GetStream().Read(bytes, 0, 256)
+updateText (Encoding.ASCII.GetString(bytes, 0, n))
 
 Application.Run(form)
