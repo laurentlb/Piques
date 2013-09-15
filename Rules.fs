@@ -24,17 +24,22 @@ let comment s =
     broadcast (Messages.Comment s)
 
 let playTurn mb i = async {
-    do! processMessage mb
+    comment (sprintf "C'est à %s de jouer" players.[i].Name)
+    // do! processMessage mb
 }
 
 let waitForPlayers (mb: MBP) = async {
-    let nbPlayers = 3
+    let nbPlayers = 1
     while players.Length < nbPlayers do
         do! processMessage mb
+        comment "En attente..."
+        comment "Waiting"
         comment (sprintf "En attente - %d/%d joueurs" players.Length nbPlayers)
 
     for i, mb in List.mapi (fun i mb -> i, mb) clients do
-        Messages.InitGame(i, [for p in players -> p.Name]) |> broadcast
+        clients.[i].Post(Messages.InitGame(i, [for p in players -> p.Name]))
+        clients.[i].Post(Messages.UpdateHand(players.[i].Hand))
+
     comment "Début de la partie"
     do! playTurn mb 0
 }

@@ -31,7 +31,7 @@ let clientMailbox (stream: NetworkStream) (inbox: MailboxProcessor<Messages.ForC
     while true do
         let! msg = inbox.Receive()
         printfn "send: %s" (msg.ToString())
-        do stream.WriteString(msg.ToString())
+        do! stream.AsyncWriteString(msg.ToString())
 }
 
 let clientLoop (stream: NetworkStream) = async {

@@ -7,14 +7,15 @@ open System.Text
 // Some nice extension methods
 type System.Net.Sockets.NetworkStream with
     member ns.AsyncWriteString (str: string) =
-        ns.AsyncWrite(Encoding.UTF8.GetBytes(str), 0, String.length str)
+        let bytes = Encoding.UTF8.GetBytes(str)
+        ns.AsyncWrite(bytes, 0, bytes.Length)
 
     member ns.WriteString (str: string) =
         ns.Write(Encoding.UTF8.GetBytes(str), 0, String.length str)
 
     member ns.AsyncReadString = async {
-        let bytes = Array.create 1024 0uy
-        let! n = ns.AsyncRead(bytes, 0, 256)
+        let bytes = Array.create 10240 0uy
+        let! n = ns.AsyncRead(bytes, 0, 10240)
         return Encoding.UTF8.GetString(bytes, 0, n)
     }
 

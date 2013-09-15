@@ -47,7 +47,9 @@ type Player(name: string) =
     let mutable score = 0
 
     member p.Name = name
-    member p.Hand = hand |> Seq.take 6 |> Seq.toList
+    member p.Hand
+      with get() = hand |> Seq.take 6 |> Seq.toList
+      and  set li = hand <- List.toArray li
     member p.InGame = inGame
     member p.Swaps = swaps
 

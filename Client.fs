@@ -9,8 +9,12 @@ open System.Windows.Forms
 open Game
 open Network
 
-let form = new Form(Text = "Batailles et piques", Width = 700, Height = 400)
+let form = new Form(Text = "Batailles et piques", Width = 700, Height = 500)
 let topText = new Label(Text = "Non connecté", Left = 50, Top = 10, AutoSize = true)
+let textBox = new TextBox(
+    Height = 400, Width = 700,
+    Left = 50, Top = 350,
+    AutoSize = true, Multiline = true)
 
 let mutable players : Player list = [] // "Rubix"; "Nicuvëo"] |> List.map (fun s -> new Player(s))
 let mutable myId = -1
@@ -55,6 +59,9 @@ let updateDisplay () =
         form.Controls.Add(button2)
         top <- top + 50
 
+    form.Controls.Add(textBox)
+
+
 let updateText message =
     topText.Text <- message
 
@@ -63,6 +70,9 @@ let processMessage = function
     | Messages.InitGame (id, names) ->
         myId <- id
         players <- [for i in names -> new Player(i)]
+        updateDisplay()
+    | Messages.UpdateHand li ->
+        players.[myId].Hand <- li
         updateDisplay()
     | x -> topText.Text <- "?? " + x.ToString() 
 
@@ -73,6 +83,7 @@ let rec doNetwork = async {
     do! tcp.GetStream().AsyncWriteString(text)
     while true do
         let! msg = tcp.GetStream().AsyncReadString
+        textBox.AppendText(msg)
         if msg.Contains("Init") then
             printfn "###%s###" msg
         for sub in msg.Split([|'\n'|], StringSplitOptions.RemoveEmptyEntries) do
