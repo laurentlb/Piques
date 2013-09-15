@@ -7,30 +7,31 @@ open System.Net.Sockets
 
 open Network
 
-let mutable players = ["Rubix"; "Nicuvëo"] |> List.map (fun s -> new Game.Player(s))
+//let gameMaster = Rules.waitForPlayers
 
-let gameMaster (inbox: MailboxProcessor<Messages.ForServer>) = async {
-    while true do
-        let! msg = inbox.Receive()
-        match msg with
-          | Messages.Register (name, mb) ->
-                printfn "[gm] -> %s" name
-                let p = new Game.Player(name)
-                let idClient = players.Length
-                players <- players @ [p] // TODO: mailbox
-                let msg = Messages.InitGame(idClient, [for p in players -> p.Name])
-                mb.Post(msg)
-          | _ -> printfn "[gm] ?! %s" (msg.ToString())
-}
+//let gameMaster (inbox: MailboxProcessor<Messages.ForServer>) = async {
+//    while true do
+//        let! msg = inbox.Receive()
+//        match msg with
+//          | Messages.Register (name, mb) ->
+//                printfn "[gm] -> %s" name
+//                let p = new Game.Player(name)
+//                let idClient = players.Length
+//                players <- players @ [p] // TODO: mailbox
+//                let msg = Messages.InitGame(idClient, [for p in players -> p.Name])
+//                mb.Post(msg)
+//          | _ -> printfn "[gm] ?! %s" (msg.ToString())
+//}
 
-let master = new MailboxProcessor<Messages.ForServer>(gameMaster)
+let master = new MailboxProcessor<Messages.ForServer>(Rules.waitForPlayers)
 master.Start()
 
 
 let clientMailbox (stream: NetworkStream) (inbox: MailboxProcessor<Messages.ForClient>) = async {
     while true do
         let! msg = inbox.Receive()
-        do! stream.AsyncWriteString(msg.ToString())
+        printfn "send: %s" (msg.ToString())
+        do stream.WriteString(msg.ToString())
 }
 
 let clientLoop (stream: NetworkStream) = async {

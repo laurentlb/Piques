@@ -44,6 +44,7 @@
   <ItemGroup>
     <Compile Include="Game.fs" />
     <Compile Include="Messages.fs" />
+    <Compile Include="Rules.fs" />
     <Compile Include="Network.fs" />
     <Compile Include="Server.fs" />
   </ItemGroup>

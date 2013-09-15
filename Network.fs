@@ -9,6 +9,9 @@ type System.Net.Sockets.NetworkStream with
     member ns.AsyncWriteString (str: string) =
         ns.AsyncWrite(Encoding.UTF8.GetBytes(str), 0, String.length str)
 
+    member ns.WriteString (str: string) =
+        ns.Write(Encoding.UTF8.GetBytes(str), 0, String.length str)
+
     member ns.AsyncReadString = async {
         let bytes = Array.create 1024 0uy
         let! n = ns.AsyncRead(bytes, 0, 256)

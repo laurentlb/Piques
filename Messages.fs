@@ -8,6 +8,7 @@ type ForClient =
   | UpdateHand of Card list
   | ShowFighting of int list
   | ShowCard of int * Card
+  | Comment of string
 
 with
   member m.Type =
@@ -16,14 +17,17 @@ with
     | UpdateHand _ -> "UpdateHand"
     | ShowFighting _ -> "ShowFighting"
     | ShowCard _ -> "ShowCard"
+    | Comment _ -> "Comment"
 
   override m.ToString() =
-    m.Type + "|" +
-    match m with
-    | InitGame (id, li) -> string id + "|" + String.concat "|" li
-    | UpdateHand li -> [for c in li -> string c.Value] |> String.concat "|"
-    | ShowFighting li -> li |> List.map string |> String.concat "|"
-    | ShowCard (p, c) -> string p + "|" + string c.Value
+    let args =
+      match m with
+        | InitGame (id, li) -> string id + "|" + String.concat "|" li
+        | UpdateHand li -> [for c in li -> string c.Value] |> String.concat "|"
+        | ShowFighting li -> li |> List.map string |> String.concat "|"
+        | ShowCard (p, c) -> string p + "|" + string c.Value
+        | Comment s -> s
+    sprintf "%s|%s\n" m.Type args
 
   static member Parse (s: string) =
       let data = s.Split([|'|'|])
@@ -33,6 +37,7 @@ with
       | "UpdateHand" -> UpdateHand [for i in args -> Card (int i)]
       | "ShowFighting" -> ShowFighting [for i in args -> int i]
       | "ShowCard" -> ShowCard (int args.[0], Card (int args.[1]))
+      | "Comment" -> Comment args.[0]
       | _ -> failwithf "Invalid network message: %s" s
 
 type ForServer =
