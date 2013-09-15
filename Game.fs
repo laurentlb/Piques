@@ -50,7 +50,9 @@ type Player(name: string) =
     member p.Hand
       with get() = hand |> Seq.take 6 |> Seq.toList
       and  set li = hand <- List.toArray li
-    member p.InGame = inGame
+    member p.InGame
+      with get () = inGame
+      and  set li = inGame <- li
     member p.Swaps = swaps
 
     member p.Swap (pig, ph) =
@@ -59,9 +61,9 @@ type Player(name: string) =
         let tmp = inGame.[pig]
         inGame.[pig] <- hand.[ph]
         hand.[ph] <- tmp
-    member p.PlayCard pig ph =
-        assert (inGame.[pig] <> Card.Empty)
-        inGame.[pig] <- hand.[ph]
+    member p.PlayCard ph =
+        let i = Array.findIndex ((=) Card.Empty) inGame
+        inGame.[i] <- hand.[ph]
         hand <- removeNth ph hand
 
     member p.Dead =

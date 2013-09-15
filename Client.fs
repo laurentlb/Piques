@@ -40,20 +40,13 @@ let select (bt: Button) key =
 
 let sendOrder _ =
     let sel = Seq.toList selectedButtons
-    let fromHand, fromGame = List.partition (function -1, _ -> true | _, _ -> false) sel
-    let mine, ennemy = List.partition (fun (pid, cid) -> pid = myId) fromGame
-    match fromHand.Length, mine.Length, ennemy.Length with
-      | 0, 0, 0 -> failwith "Sélectionne des cartes"
-      | x, 0, 0 -> () // choose
-      | 1, 1, 0 -> () // swap
-      | 0, 1, 1 -> () // attaque simple
-      | 0, 2, 1 -> () // travail d'équipe
-      | 0, 1, 2 -> () // attaque double
-      | _ -> MessageBox.Show("Je ne comprends pas") |> ignore
-    mailbox.Post(Messages.Action(myId, sel))
+    match Messages.Action.TryAnalyse myId sel with
+    | Some msg -> mailbox.Post(Messages.DoAction(myId, sel))
+    | _ -> MessageBox.Show("Action invalide") |> ignore
 
 let updateDisplay () =
     form.Controls.Clear()
+    selectedButtons.Clear()
     form.Controls.Add(topText)
     let mutable top = 50
 
@@ -77,7 +70,8 @@ let updateDisplay () =
     // Player buttons
     for pid in 0 .. players.Length - 1 do
         let p = players.[pid]
-        form.Controls.Add(new Label(Text = p.Name + "*", Top = top))
+        let name = if pid = myId then p.Name + "*" else p.Name
+        form.Controls.Add(new Label(Text = p.Name, Top = top))
 
         for i in 0 .. p.InGame.Length - 1 do
             let text = if pid = myId || p.InGame.[i] = Card.Empty then p.InGame.[i].ToString() else "??"
@@ -100,6 +94,10 @@ let processMessage = function
         updateDisplay()
     | Messages.UpdateHand li ->
         players.[myId].Hand <- li
+        updateDisplay()
+    | Messages.UpdateGameCards li ->
+        for pi, cli in List.mapi (fun i c -> i, c) li do
+            players.[pi].InGame <- List.toArray cli
         updateDisplay()
     | x -> topText.Text <- "?? " + x.ToString() 
 

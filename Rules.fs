@@ -1,8 +1,19 @@
 ﻿module Rules
 
-let mutable players = [] // "Rubix"; "Nicuvëo"] |> List.map (fun s -> new Game.Player(s))
-
 type MBP = MailboxProcessor<Messages.ForServer>
+let mutable players : (Game.Player * MailboxProcessor<Messages.ForClient>) list = []
+
+let broadcast msg =
+    for _, mb in players do
+        mb.Post(msg)
+
+let comment s =
+    broadcast (Messages.Comment s)
+
+let updateGame id =
+    let p, cmb = players.[id]
+    cmb.Post(Messages.UpdateHand(p.Hand))
+    cmb.Post(Messages.UpdateGameCards [for p, _ in players -> Array.toList p.InGame])
 
 let processMessage (mb: MBP) = async {
     let! msg = mb.Receive()
@@ -11,16 +22,13 @@ let processMessage (mb: MBP) = async {
             printfn "[gm] -> %s" name
             let idClient = players.Length
             players <- players @ [new Game.Player(name), cmb]
-            ()
-        | _ -> failwith "TODO"
+        | Messages.DoAction (owner, sel) ->
+            match Messages.Action.Analyse owner sel with
+            | Messages.Choose li ->
+                for i in li do (fst players.[owner]).PlayCard(i)
+                updateGame owner
+            | _ -> failwith "blah"
 }
-
-let broadcast msg =
-    for _, mb in players do
-        mb.Post(msg)
-
-let comment s =
-    broadcast (Messages.Comment s)
 
 let rec chooseCards mb = async {
     let mustPlay, hasPlayed = players |> List.partition (fun (p,_) -> p.MustChoose)
@@ -40,7 +48,7 @@ let rec playTurn mb i = async {
   }
 
 let waitForPlayers (mb: MBP) = async {
-    let nbPlayers = 3
+    let nbPlayers = 2
     while players.Length < nbPlayers do
         do! processMessage mb
         comment "En attente..."
@@ -51,7 +59,7 @@ let waitForPlayers (mb: MBP) = async {
     let i = ref 0
     for p, cmb in players do
         cmb.Post(Messages.InitGame(!i, [for p, _ in players -> p.Name]))
-        cmb.Post(Messages.UpdateHand(p.Hand))
+        updateGame !i
         incr i
 
     do! chooseCards mb
