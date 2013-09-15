@@ -11,6 +11,7 @@ type ForClient =
   | ShowFighting of int list
   | ShowCard of int * Card
   | Comment of string
+  | YourTurn
 
 with
   member m.Type =
@@ -22,6 +23,7 @@ with
     | ShowFighting _ -> "ShowFighting"
     | ShowCard _ -> "ShowCard"
     | Comment _ -> "Comment"
+    | YourTurn -> "YourTurn"
 
   override m.ToString() =
     let args =
@@ -36,6 +38,7 @@ with
         | ShowFighting li -> li |> List.map string |> String.concat "|"
         | ShowCard (p, c) -> string p + "|" + string c.Value
         | Comment s -> s
+        | YourTurn -> ""
     sprintf "%s|%s\n" m.Type args
 
   static member Parse (s: string) =
@@ -51,6 +54,7 @@ with
       | "ShowFighting" -> ShowFighting [for i in args -> int i]
       | "ShowCard" -> ShowCard (int args.[0], Card (int args.[1]))
       | "Comment" -> Comment args.[0]
+      | "YourTurn" -> YourTurn
       | _ -> failwithf "Invalid network message: %s" s
 
 type Action =

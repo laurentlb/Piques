@@ -43,4 +43,11 @@ let clientLoop (stream: NetworkStream) = async {
     with _ -> do printfn "Connection closed"
 }
 
+let startAI () =
+    let name = checkName "?"
+    let mb = new MailboxProcessor<Messages.ForClient>(AI.play master)
+    mb.Start()
+    master.Post(Messages.ForServer.Register(name, mb))
+
+startAI ()
 establishServer clientLoop 3000

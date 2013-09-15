@@ -53,6 +53,7 @@ let rec chooseCards mb = async {
     if not mustPlay.IsEmpty then
         for p, c in mustPlay do
             let n = p.MustChoose
+            c.Post(Messages.YourTurn)
             c.Post(Messages.Comment(sprintf "Choisis %d carte(s) de ta main." n))
         for p, c in hasPlayed do
             let people = mustPlay |> List.map (fun (p, _) -> p.Name) |> String.concat " et "
@@ -69,6 +70,7 @@ let rec nextPlayer i =
 let rec playTurn mb i = async {
     updateWorld ()
     comment (sprintf "C'est à %s de jouer" (fst players.[i]).Name)
+    (snd players.[i]).Post(Messages.YourTurn)
     let! action = getAction mb i
     match action with
       | Messages.Attack(myUnit, ennemy, [hisUnit]) ->
@@ -76,14 +78,18 @@ let rec playTurn mb i = async {
             let u1, u2 = p1.InGame.[myUnit], p2.InGame.[hisUnit]
             let l1, l2 = getLetter i myUnit, getLetter ennemy hisUnit
             let alive1, alive2 = u1.Fight(u2)
-            let com = ref (sprintf "%c attaque %c." l1 l2)
+            let com = ref ""
             if not alive1 then
                 p1.Kill(myUnit); p2.HasKilled(u1)
-                com := sprintf "%s %c[%s] est mort." !com l1 (u1.ToString())
+                com := sprintf "%c[%s] est mort. " l1 (u1.ToString())
             if not alive2 then
                 p2.Kill(hisUnit); p1.HasKilled(u2)
-                com := sprintf "%s %c[%s] est mort." !com l2 (u2.ToString())
-            comment !com
+                com := sprintf "%s%c[%s] est mort." !com l2 (u2.ToString())
+            let shortCom = sprintf "%c attaque %c. %s" l1 l2 !com
+            let fullCom = sprintf "%c[%s] attaque %c[%s]. %s" l1 (u1.ToString()) l2 (u2.ToString()) !com
+            comment shortCom
+            (snd players.[i]).Post(Messages.Comment (fullCom + "\n"))
+            (snd players.[ennemy]).Post(Messages.Comment fullCom)
             updateWorld()
       | _ -> ()
     
@@ -96,11 +102,9 @@ let rec playTurn mb i = async {
   }
 
 let waitForPlayers (mb: MBP) = async {
-    let nbPlayers = 2
+    let nbPlayers = 3
     while players.Length < nbPlayers do
         do! processMessage mb
-        comment "En attente..."
-        comment "Waiting"
         comment (sprintf "En attente - %d/%d joueurs" players.Length nbPlayers)
 
     let i = ref 0

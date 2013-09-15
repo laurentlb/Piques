@@ -22,6 +22,7 @@ let selectedButtons = new HashSet<int * int>()
 let tcp = new TcpClient()
 tcp.Connect("localhost", 3000)
 
+
 let mailbox = new MailboxProcessor<Messages.ForServer>(fun inbox ->
     async {
         while true do
@@ -84,12 +85,8 @@ let updateDisplay () =
             form.Controls.Add(button)
             cardId <- cardId + 1
         top <- top + 50
+    // form.Controls.Add(textBox)
 
-    form.Controls.Add(textBox)
-
-
-let updateText message =
-    topText.Text <- message
 
 let processMessage = function
     | Messages.Comment s -> topText.Text <- s
@@ -105,6 +102,7 @@ let processMessage = function
         for pi, cli in List.mapi (fun i c -> i, c) li do
             players.[pi].InGame <- List.toArray cli
         updateDisplay()
+    | Messages.YourTurn -> ()
     | x -> topText.Text <- "?? " + x.ToString() 
 
 let rec doNetwork = async {
