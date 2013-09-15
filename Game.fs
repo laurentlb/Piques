@@ -11,7 +11,8 @@ with
   member c.IsSpy = c.Value = 1 || c.Value = 2
   member c.IsMineSweeper = c.Value = 4 || c.Value = 8
 
-  override c.ToString() = match c with
+  override c.ToString() =
+    match c with
     | _ when c = Card.King -> "16 (roi)"
     | _ when c = Card.Mine -> "mine"
     | _ when c.IsSpy -> string c.Value + "(esp)"
