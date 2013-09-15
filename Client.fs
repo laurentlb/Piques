@@ -72,6 +72,7 @@ let updateDisplay () =
     for pid in 0 .. players.Length - 1 do
         let p = players.[pid]
         let name = if pid = myId then p.Name + "*" else p.Name
+        let name = name + " " + string p.Score
         form.Controls.Add(new Label(Text = name, Top = top))
 
         for i in 0 .. p.InGame.Length - 1 do
@@ -98,7 +99,8 @@ let processMessage = function
         updateDisplay()
     | Messages.UpdateHand li ->
         players.[myId].Hand <- li
-        updateDisplay()
+    | Messages.UpdateScore li ->
+        for p, score in List.zip players li do p.Score <- score
     | Messages.UpdateGameCards li ->
         for pi, cli in List.mapi (fun i c -> i, c) li do
             players.[pi].InGame <- List.toArray cli

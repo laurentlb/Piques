@@ -63,6 +63,9 @@ type Player(name: string) =
       with get () = inGame
       and  set li = inGame <- li
     member p.Swaps = swaps
+    member p.Score
+      with get () = score
+      and  set sc = score <- sc
 
     member p.Swap (pig, ph) =
         assert (swaps > 0)
@@ -75,7 +78,7 @@ type Player(name: string) =
         inGame.[i] <- hand.[ph]
         hand <- removeNth ph hand
 
-    member p.Dead =
+    member p.IsDead =
         inGame = [|Card.Empty; Card.Empty|] && hand.Length = 0
 
     member p.MustChoose =

@@ -13,6 +13,7 @@ let comment s =
 let updateGame id =
     let p, cmb = players.[id]
     cmb.Post(Messages.UpdateHand(p.Hand))
+    cmb.Post(Messages.UpdateScore([for p, _ in players -> p.Score]))
     cmb.Post(Messages.UpdateGameCards [for p, _ in players -> Array.toList p.InGame])
 
 let updateWorld () =
@@ -28,7 +29,9 @@ let processMessage (mb: MBP) = async {
         | Messages.DoAction (owner, sel) ->
             match Messages.Action.Analyse owner sel with
             | Messages.Choose li ->
-                for i in List.sort li |> List.rev do (fst players.[owner]).PlayCard(i)
+                let p = fst players.[owner]
+                if p.MustChoose = li.Length then
+                    for i in List.sort li |> List.rev do p.PlayCard(i)
                 updateGame owner
             | _ -> ()
 }
@@ -58,6 +61,11 @@ let rec chooseCards mb = async {
         do! chooseCards mb
 }
 
+let rec nextPlayer i =
+    let n = (i + 1) % players.Length
+    if (fst players.[n]).IsDead then nextPlayer n
+    else n
+
 let rec playTurn mb i = async {
     updateWorld ()
     comment (sprintf "C'est à %s de jouer" (fst players.[i]).Name)
@@ -79,9 +87,12 @@ let rec playTurn mb i = async {
             updateWorld()
       | _ -> ()
     
-    do! Async.Sleep(5000)
-    do! chooseCards mb
-    do! playTurn mb ((i + 1) % players.Length)
+    if players |> List.filter (fun (p, _) -> not p.IsDead) |> List.length <= 1 then
+        ()
+    else
+        do! Async.Sleep(5000)
+        do! chooseCards mb
+        do! playTurn mb (nextPlayer i)
   }
 
 let waitForPlayers (mb: MBP) = async {
@@ -92,7 +103,6 @@ let waitForPlayers (mb: MBP) = async {
         comment "Waiting"
         comment (sprintf "En attente - %d/%d joueurs" players.Length nbPlayers)
 
-//    for i, mb in List.mapi (fun i mb -> i, mb) clients do
     let i = ref 0
     for p, cmb in players do
         cmb.Post(Messages.InitGame(!i, [for p, _ in players -> p.Name]))

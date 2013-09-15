@@ -6,6 +6,7 @@ open Game
 type ForClient =
   | InitGame of int * string list // id * names
   | UpdateHand of Card list
+  | UpdateScore of int list
   | UpdateGameCards of Card list list
   | ShowFighting of int list
   | ShowCard of int * Card
@@ -16,6 +17,7 @@ with
     match m with
     | InitGame _ -> "InitGame"
     | UpdateHand _ -> "UpdateHand"
+    | UpdateScore _ -> "UpdateScore"
     | UpdateGameCards _ -> "UpdateGameCards"
     | ShowFighting _ -> "ShowFighting"
     | ShowCard _ -> "ShowCard"
@@ -26,6 +28,7 @@ with
       match m with
         | InitGame (id, li) -> string id + "|" + String.concat "|" li
         | UpdateHand li -> [for c in li -> string c.Value] |> String.concat "|"
+        | UpdateScore li -> [for i in li -> string i] |> String.concat "|"
         | UpdateGameCards li ->
                 [for pli in li ->
                     [for c in pli -> string c.Value] |> String.concat ","
@@ -41,6 +44,7 @@ with
       match data.[0] with
       | "InitGame" -> InitGame(int data.[1], Array.toList data.[2..])
       | "UpdateHand" -> UpdateHand [for i in args -> Card (int i)]
+      | "UpdateScore" -> UpdateScore [for i in args -> int i]
       | "UpdateGameCards" ->
             let tuples = [for str in args -> [for c in str.Split([|','|]) -> Card (int c)]]
             UpdateGameCards tuples
