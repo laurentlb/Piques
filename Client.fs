@@ -68,16 +68,20 @@ let updateDisplay () =
         top <- top + 50
 
     // Player buttons
+    let mutable cardId = 0
     for pid in 0 .. players.Length - 1 do
         let p = players.[pid]
         let name = if pid = myId then p.Name + "*" else p.Name
-        form.Controls.Add(new Label(Text = p.Name, Top = top))
+        form.Controls.Add(new Label(Text = name, Top = top))
 
         for i in 0 .. p.InGame.Length - 1 do
-            let text = if pid = myId || p.InGame.[i] = Card.Empty then p.InGame.[i].ToString() else "??"
+            let text =
+                if pid = myId || p.InGame.[i] = Card.Empty then p.InGame.[i].ToString()
+                else char (cardId + int 'A') |> string
             let button = new Button(Text = text, Left = (i + 1) * 100, Top = top)
             button.MouseClick.Add(fun x -> select button (pid, i))
             form.Controls.Add(button)
+            cardId <- cardId + 1
         top <- top + 50
 
     form.Controls.Add(textBox)
@@ -107,8 +111,6 @@ let rec doNetwork = async {
     while true do
         let! msg = tcp.GetStream().AsyncReadString
         textBox.AppendText(msg)
-        if msg.Contains("Init") then
-            printfn "###%s###" msg
         for sub in msg.Split([|'\n'|], StringSplitOptions.RemoveEmptyEntries) do
             processMessage (Messages.ForClient.Parse sub)
 }

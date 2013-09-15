@@ -20,6 +20,15 @@ with
     | _ when c.IsMineSweeper -> string c.Value + " (dém)"
     | _ -> string c.Value
 
+  member c1.Fight (c2: Card) =
+    if c1 = c2 then false, false
+    elif c2 = Card.Mine then
+        if c1.IsMineSweeper then true, false
+        else false, true
+    else
+        if c1 = Card.King && c2.IsSpy then false, true
+        elif c2 = Card.King && c1.IsSpy then true, false
+        else c1.Value > c2.Value, c1.Value < c2.Value
 
 let allCards = [0; 0; 16] @ [1 .. 13] |> List.map Card
 
@@ -70,7 +79,8 @@ type Player(name: string) =
         inGame = [|Card.Empty; Card.Empty|] && hand.Length = 0
 
     member p.MustChoose =
-        if Array.forall ((<>) Card.Empty) inGame then
-            false
-        else
-            hand.Length > 0
+        let empty = (Array.filter ((=) Card.Empty) inGame).Length
+        min hand.Length empty
+
+    member p.Kill i =
+        inGame.[i] <- Card.Empty

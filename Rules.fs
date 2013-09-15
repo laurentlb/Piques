@@ -15,6 +15,9 @@ let updateGame id =
     cmb.Post(Messages.UpdateHand(p.Hand))
     cmb.Post(Messages.UpdateGameCards [for p, _ in players -> Array.toList p.InGame])
 
+let updateWorld () =
+    for i in 0 .. players.Length - 1 do updateGame i
+
 let processMessage (mb: MBP) = async {
     let! msg = mb.Receive()
     match msg with
@@ -30,11 +33,24 @@ let processMessage (mb: MBP) = async {
             | _ -> failwith "blah"
 }
 
+let rec getAction (mb: MBP) from = async {
+    let! msg = mb.Receive()
+    match msg with
+      | Messages.DoAction (owner, sel) ->
+        if owner = from then return Messages.Action.Analyse owner sel
+        else return! getAction mb from
+      | _ -> return! getAction mb from
+}
+
+let getLetter owner unit =
+    char (int 'A' + owner * 2 + unit)
+
 let rec chooseCards mb = async {
-    let mustPlay, hasPlayed = players |> List.partition (fun (p,_) -> p.MustChoose)
+    let mustPlay, hasPlayed = players |> List.partition (fun (p,_) -> p.MustChoose > 0)
     if not mustPlay.IsEmpty then
         for p, c in mustPlay do
-            c.Post(Messages.Comment("Sélectionne cartes de ta main à jouer."))
+            let n = p.MustChoose
+            c.Post(Messages.Comment(sprintf "Choisis %d cartes de ta main." n))
         for p, c in hasPlayed do
             let people = mustPlay |> List.map (fun (p, _) -> p.Name) |> String.concat " et "
             c.Post(Messages.Comment("En attente de " + people))
@@ -43,8 +59,24 @@ let rec chooseCards mb = async {
 }
 
 let rec playTurn mb i = async {
+    updateWorld ()
     comment (sprintf "C'est à %s de jouer" (fst players.[i]).Name)
-    // do! processMessage mb
+    let! action = getAction mb i
+    match action with
+      | Messages.Attack(myUnit, ennemy, [hisUnit]) ->
+            let p1, p2 = fst players.[i], fst players.[ennemy]
+            let u1, u2 = p1.InGame.[myUnit], p2.InGame.[hisUnit]
+            let l1, l2 = getLetter i myUnit, getLetter ennemy hisUnit
+            comment (sprintf "%c[%s] attaque %c[%s]" l1 (u1.ToString()) l2 (u2.ToString()))
+            let alive1, alive2 = u1.Fight(u2)
+            if not alive1 then p1.Kill(myUnit)
+            if not alive2 then p2.Kill(hisUnit)
+            updateWorld()
+      | _ -> ()
+    
+    do! Async.Sleep(5000)
+    do! chooseCards mb
+    do! playTurn mb ((i + 1) % players.Length)
   }
 
 let waitForPlayers (mb: MBP) = async {
