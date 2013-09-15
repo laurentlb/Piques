@@ -40,7 +40,7 @@ let generateHand () =
 let removeNth n =
     Array.mapi (fun i x -> i, x) >> Array.filter (fst >> (<>) n) >> Array.map snd
 
-type Player(name) =
+type Player(name: string) =
     let mutable hand = generateHand()
     let mutable inGame = [|Card.Empty; Card.Empty|]
     let mutable swaps = 2
