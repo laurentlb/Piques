@@ -5,19 +5,27 @@ open System.Drawing
 open System.Net.Sockets
 open System.Threading
 open System.Windows.Forms
+open System.Collections.Generic
 
 open Game
 open Network
 
 let form = new Form(Text = "Batailles et piques", Width = 700, Height = 500)
 let topText = new Label(Text = "Non connecté", Left = 50, Top = 10, AutoSize = true)
-let textBox = new TextBox(
-    Height = 400, Width = 700,
-    Left = 50, Top = 350,
-    AutoSize = true, Multiline = true)
+let textBox = new TextBox(Height = 400, Width = 700, Top = 350, Multiline = true)
 
-let mutable players : Player list = [] // "Rubix"; "Nicuvëo"] |> List.map (fun s -> new Player(s))
+let mutable players : Player list = []
 let mutable myId = -1
+
+let selected = new HashSet<int * int>()
+
+let select (bt: Button) key =
+    if selected.Contains(key) then
+        bt.Font <- new Font(bt.Font, FontStyle.Regular)
+        selected.Remove(key) |> ignore
+    else
+        bt.Font <- new Font(bt.Font, FontStyle.Bold)
+        selected.Add(key) |> ignore
 
 let updateDisplay () =
     form.Controls.Clear()
@@ -27,13 +35,7 @@ let updateDisplay () =
     if myId >= 0 then
         // Action buttons
         form.Controls.Add(new Label(Text = "Actions", Top = top))
-        let button = new Button(Text = "Attaquer", Left = 100, Top = top)
-        button.MouseClick.Add(fun _ -> System.Windows.Forms.MessageBox.Show("test") |> ignore)
-        // button.BackColor <- Color.Red;
-        form.Controls.Add(button)
-
-        let button = new Button(Text = "Tire-au-flanc", Left = 200, Top = top)
-        button.MouseClick.Add(fun _ -> System.Windows.Forms.MessageBox.Show("test") |> ignore)
+        let button = new Button(Text = "Action", Left = 100, Top = top)
         form.Controls.Add(button)
         top <- top + 50
 
@@ -43,20 +45,20 @@ let updateDisplay () =
         for i in 0 .. hand.Length - 1 do
             form.Controls.Add(new Label(Text = "Ta main", Top = top))
             let button = new Button(Text = hand.[i].ToString(), Left = 100 + i * 100, Top = top)
-            button.MouseClick.Add(fun _ -> System.Windows.Forms.MessageBox.Show(hand.[i].ToString()) |> ignore)
+            button.MouseClick.Add(fun x -> select button (-1, i))
             form.Controls.Add(button)
         top <- top + 50
 
     // Player buttons
-    for p in players do
+    for pid in 0 .. players.Length - 1 do
+        let p = players.[pid]
         form.Controls.Add(new Label(Text = p.Name, Top = top))
 
-        let button1 = new Button(Text = "foo", Left = 100, Top = top)
-        button1.MouseClick.Add(fun _ -> System.Windows.Forms.MessageBox.Show("test") |> ignore)
-        form.Controls.Add(button1)
-        let button2 = new Button(Text = "foo", Left = 200, Top = top)
-        button2.MouseClick.Add(fun _ -> System.Windows.Forms.MessageBox.Show("test2") |> ignore)
-        form.Controls.Add(button2)
+        for i in 0 .. p.InGame.Length - 1 do
+            let text = if pid = myId || p.InGame.[i] = Card.Empty then p.InGame.[i].ToString() else "??"
+            let button = new Button(Text = text, Left = (i + 1) * 100, Top = top)
+            button.MouseClick.Add(fun x -> select button (pid, i))
+            form.Controls.Add(button)
         top <- top + 50
 
     form.Controls.Add(textBox)
