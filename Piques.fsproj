@@ -44,6 +44,8 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Game.fs" />
+    <Compile Include="Messages.fs" />
     <Compile Include="Network.fs" />
     <Compile Include="Client.fs" />
   </ItemGroup>
