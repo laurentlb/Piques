@@ -1,8 +1,9 @@
 ﻿module Messages
 
+open Microsoft.FSharp.Control
 open Game
 
-type MessageForClient =
+type ForClient =
   | InitGame of int * string list // id * names
   | UpdateHand of Card list
   | ShowFighting of int list
@@ -33,3 +34,10 @@ with
       | "ShowFighting" -> ShowFighting [for i in args -> int i]
       | "ShowCard" -> ShowCard (int args.[0], Card (int args.[1]))
       | _ -> failwithf "Invalid network message: %s" s
+
+type ForServer =
+  | Register of string * MailboxProcessor<ForClient>
+with
+  override m.ToString() = failwith "not implemented"
+  
+  static member Parse (s: string) = failwith "not implemented"
