@@ -28,11 +28,11 @@ let rec establishServer f port =
         printfn "New client"
         f (client.GetStream()) |> Async.StartImmediate
 
-// gérer la fin de partie
-// affichage du score
-// IA random avec sa boite aux lettres
+// nombre de cartes restantes
 // todo: spy
 // todo: 2 vs 1
 // todo: 1 vs 2
+// swap
+// interdire les attaques à la mine / par le vide
 // faire exploser la double mine :)
 // nombre de cartes dans la pioche

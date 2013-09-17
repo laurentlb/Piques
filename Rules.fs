@@ -48,18 +48,19 @@ let rec getAction (mb: MBP) from = async {
 let getLetter owner unit =
     char (int 'A' + owner * 2 + unit)
 
-let rec chooseCards mb = async {
+let rec chooseCards mb sendMessage = async {
     let mustPlay, hasPlayed = players |> List.partition (fun (p,_) -> p.MustChoose > 0)
     if not mustPlay.IsEmpty then
-        for p, c in mustPlay do
-            let n = p.MustChoose
-            c.Post(Messages.YourTurn)
-            c.Post(Messages.Comment(sprintf "Choisis %d carte(s) de ta main." n))
+        if sendMessage then
+            for p, c in mustPlay do
+                let n = p.MustChoose
+                c.Post(Messages.SetState Messages.State.ChooseCards)
+                c.Post(Messages.Comment(sprintf "Choisis %d carte(s) de ta main." n))
         for p, c in hasPlayed do
             let people = mustPlay |> List.map (fun (p, _) -> p.Name) |> String.concat " et "
             c.Post(Messages.Comment("En attente de " + people))
         do! processMessage mb
-        do! chooseCards mb
+        do! chooseCards mb false
 }
 
 let rec nextPlayer i =
@@ -67,10 +68,13 @@ let rec nextPlayer i =
     if (fst players.[n]).IsDead then nextPlayer n
     else n
 
+let reinit () =
+    players <- players |> List.map (fun (p, mb) -> new Game.Player(p.Name), mb)
+
 let rec playTurn mb i = async {
     updateWorld ()
     comment (sprintf "C'est à %s de jouer" (fst players.[i]).Name)
-    (snd players.[i]).Post(Messages.YourTurn)
+    (snd players.[i]).Post(Messages.SetState Messages.State.YourTurn)
     let! action = getAction mb i
     match action with
       | Messages.Attack(myUnit, ennemy, [hisUnit]) ->
@@ -91,14 +95,23 @@ let rec playTurn mb i = async {
             (snd players.[i]).Post(Messages.Comment (fullCom + "\n"))
             (snd players.[ennemy]).Post(Messages.Comment fullCom)
             updateWorld()
-      | _ -> ()
-    
+            printfn "%s" fullCom
+      | _ -> return! playTurn mb i
+
     if players |> List.filter (fun (p, _) -> not p.IsDead) |> List.length <= 1 then
-        ()
+        let maxScore = players |> List.map (fun (p, _) -> p.Score) |> List.max
+        let winners = players |> List.choose (fun (p, _) -> if p.Score = maxScore then Some p.Name else None)
+                              |> String.concat " et "
+        comment (sprintf "La partie a été remportée par : %s." winners)
+        broadcast (Messages.SetState Messages.State.EndGame)
+        do! Async.Sleep(5000)
+        reinit ()
+        updateWorld ()
     else
         do! Async.Sleep(5000)
-        do! chooseCards mb
-        do! playTurn mb (nextPlayer i)
+
+    do! chooseCards mb true
+    do! playTurn mb (nextPlayer i)
   }
 
 let waitForPlayers (mb: MBP) = async {
@@ -110,10 +123,10 @@ let waitForPlayers (mb: MBP) = async {
     let i = ref 0
     for p, cmb in players do
         cmb.Post(Messages.InitGame(!i, [for p, _ in players -> p.Name]))
-        updateGame !i
         incr i
 
-    do! chooseCards mb
+    updateWorld ()
+    do! chooseCards mb true
     comment "Début de la partie"
     do! playTurn mb 0
 }

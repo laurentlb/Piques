@@ -13,7 +13,7 @@ open Network
 
 let form = new Form(Text = "Batailles et piques", Width = 700, Height = 500)
 let topText = new Label(Text = "Non connecté", Left = 50, Top = 10, AutoSize = true)
-let textBox = new TextBox(Height = 400, Width = 700, Top = 350, Multiline = true)
+let textBox = new TextBox(Height = 200, Width = 700, Top = 350, Multiline = true)
 
 let mutable players : Player list = []
 let mutable myId = -1
@@ -40,6 +40,7 @@ let select (bt: Button) key =
         selectedButtons.Add(key) |> ignore
 
 let sendOrder _ =
+    textBox.Clear()
     let sel = Seq.toList selectedButtons
     match Messages.Action.TryAnalyse myId sel with
     | Some msg -> mailbox.Post(Messages.DoAction(myId, sel))
@@ -85,11 +86,13 @@ let updateDisplay () =
             form.Controls.Add(button)
             cardId <- cardId + 1
         top <- top + 50
-    // form.Controls.Add(textBox)
+
+    textBox.Top <- top
+    form.Controls.Add(textBox)
 
 
 let processMessage = function
-    | Messages.Comment s -> topText.Text <- s
+    | Messages.Comment s -> topText.Text <- s; textBox.AppendText(s + "\n")
     | Messages.InitGame (id, names) ->
         myId <- id
         players <- [for i in names -> new Player(i)]
@@ -102,7 +105,7 @@ let processMessage = function
         for pi, cli in List.mapi (fun i c -> i, c) li do
             players.[pi].InGame <- List.toArray cli
         updateDisplay()
-    | Messages.YourTurn -> ()
+    | Messages.SetState _ -> ()
     | x -> topText.Text <- "?? " + x.ToString() 
 
 let rec doNetwork = async {
@@ -110,7 +113,6 @@ let rec doNetwork = async {
     do! tcp.GetStream().AsyncWriteString(text)
     while true do
         let! msg = tcp.GetStream().AsyncReadString
-        textBox.AppendText(msg)
         for sub in msg.Split([|'\n'|], StringSplitOptions.RemoveEmptyEntries) do
             processMessage (Messages.ForClient.Parse sub)
 }

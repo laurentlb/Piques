@@ -1,7 +1,12 @@
 ﻿module Messages
 
 open Microsoft.FSharp.Control
+open Microsoft.FSharp.Reflection
+open System
+
 open Game
+
+type State = YourTurn = 0 | ChooseCards = 1 | EndGame = 2
 
 type ForClient =
   | InitGame of int * string list // id * names
@@ -11,19 +16,11 @@ type ForClient =
   | ShowFighting of int list
   | ShowCard of int * Card
   | Comment of string
-  | YourTurn
+  | SetState of State
 
 with
   member m.Type =
-    match m with
-    | InitGame _ -> "InitGame"
-    | UpdateHand _ -> "UpdateHand"
-    | UpdateScore _ -> "UpdateScore"
-    | UpdateGameCards _ -> "UpdateGameCards"
-    | ShowFighting _ -> "ShowFighting"
-    | ShowCard _ -> "ShowCard"
-    | Comment _ -> "Comment"
-    | YourTurn -> "YourTurn"
+    match FSharpValue.GetUnionFields(m, typeof<ForClient>) with case, _ -> case.Name
 
   override m.ToString() =
     let args =
@@ -38,11 +35,11 @@ with
         | ShowFighting li -> li |> List.map string |> String.concat "|"
         | ShowCard (p, c) -> string p + "|" + string c.Value
         | Comment s -> s
-        | YourTurn -> ""
+        | SetState st -> string st
     sprintf "%s|%s\n" m.Type args
 
   static member Parse (s: string) =
-      let data = s.Split([|'|'|])
+      let data = s.Split([|'|'|], StringSplitOptions.RemoveEmptyEntries)
       let args = Array.toList data.[1..]
       match data.[0] with
       | "InitGame" -> InitGame(int data.[1], Array.toList data.[2..])
@@ -54,7 +51,7 @@ with
       | "ShowFighting" -> ShowFighting [for i in args -> int i]
       | "ShowCard" -> ShowCard (int args.[0], Card (int args.[1]))
       | "Comment" -> Comment args.[0]
-      | "YourTurn" -> YourTurn
+      | "SetState" -> SetState (Enum.Parse(typeof<State>, args.[0]) |> unbox<State>)
       | _ -> failwithf "Invalid network message: %s" s
 
 type Action =
@@ -93,7 +90,7 @@ with
     | Register _ -> failwith "not implemented"
 
   static member Parse (s: string) =
-      let data = s.Split([|'|'|])
+      let data = s.Split([|'|'|], StringSplitOptions.RemoveEmptyEntries)
       let args = Array.toList data.[1..]
       match data.[0] with
       | "Action" ->
